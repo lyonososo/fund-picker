@@ -281,11 +281,8 @@ function pjq(){
 var _rankSeq=0;
 function loadRankData(ft,sc,pi,pn){
   return new Promise(function(resolve){
-    // Use a unique marker to detect when THIS specific response arrives
-    var marker='_rkMk_'+(++_rankSeq);
+    var reqId=++_rankSeq;
     var s=document.createElement('script');
-    // Inject a marker variable that the response will NOT overwrite
-    // We detect completion by checking if rankData changed AND has valid data
     var snapshot=JSON.stringify(window.rankData);
     var tries=0;
     var checker=setInterval(function(){
@@ -293,7 +290,9 @@ function loadRankData(ft,sc,pi,pn){
       var current=JSON.stringify(window.rankData);
       if(current!==snapshot&&window.rankData&&window.rankData.datas&&Array.isArray(window.rankData.datas)&&window.rankData.datas.length>0){
         clearInterval(checker);
-        snapshot=current; // update snapshot so next call doesn't false-trigger
+        snapshot=current;
+        // Verify this is actually new data for THIS request by checking datacount changed
+        // or just resolve since serial requests guarantee ordering
         resolve(window.rankData.datas);
       }
       if(tries>200){clearInterval(checker);resolve([])}
@@ -592,6 +591,7 @@ function runRecommendation(){
   var types=[{ft:'gp'},{ft:'hh'},{ft:'zq'},{ft:'zs'}];
   var sorts=[{sc:'dzjf'},{sc:'3yzf'},{sc:'6yzf'},{sc:'1yzf'}];
   var allItems={};
+  var seenCodes={};
   var queue=[];
   for(var ti=0;ti<types.length;ti++){
     for(var si=0;si<sorts.length;si++){
@@ -609,7 +609,7 @@ function runRecommendation(){
       for(var i=0;i<datas.length;i++){
         if(typeof datas[i]!=='string')continue;
         var item=parseRankItem(datas[i]);
-        if(item&&item.code)allItems[item.code]=item;
+        if(item&&item.code&&!seenCodes[item.code]){seenCodes[item.code]=1;allItems[item.code]=item}
       }
       doneRequests++;
       $('recFill').style.width=Math.round(doneRequests/totalRequests*50)+'%';
