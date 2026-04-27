@@ -442,20 +442,22 @@ function renderCompareBody(){
 var _navCbId=0;
 function fetchNav(code){
   return new Promise(function(resolve){
-    var cbName='_navCb_'+(++_navCbId)+'_'+code;
+    var cbName='_fnav_'+(++_navCbId)+'_'+code+'_'+Date.now();
+    var resolved=false;
     window[cbName]=function(d){
-      delete window[cbName];
-      var s=document.getElementById(cbName);if(s)s.remove();
+      if(resolved)return;resolved=true;
+      try{delete window[cbName]}catch(e){}
+      var el=document.getElementById('s_'+cbName);if(el)el.remove();
       var list=(d.Data&&d.Data.LSJZList)||[];
       if(list.length<10){resolve(null);return}
       list.reverse();resolve(list.map(function(x){return parseFloat(x.DWJZ)}));
     };
     var s=document.createElement('script');
-    s.id=cbName;
-    s.src='https://api.fund.eastmoney.com/f10/lsjz?callback='+cbName+'&fundCode='+code+'&pageIndex=1&pageSize=120&rt='+Date.now();
-    s.onerror=function(){delete window[cbName];s.remove();resolve(null)};
+    s.id='s_'+cbName;
+    s.src='https://api.fund.eastmoney.com/f10/lsjz?callback='+cbName+'&fundCode='+code+'&pageIndex=1&pageSize=120&_t='+Date.now();
+    s.onerror=function(){if(resolved)return;resolved=true;try{delete window[cbName]}catch(e){}s.remove();resolve(null)};
     document.head.appendChild(s);
-    setTimeout(function(){if(window[cbName]){delete window[cbName];var el=document.getElementById(cbName);if(el)el.remove();resolve(null)}},10000);
+    setTimeout(function(){if(!resolved){resolved=true;try{delete window[cbName]}catch(e){}var el=document.getElementById('s_'+cbName);if(el)el.remove();resolve(null)}},15000);
   });
 }
 
@@ -585,22 +587,25 @@ function startRecAnalysis(codes){
 function runRecommendation(){
   console.log('[REC] runRecommendation called');
   $('recProgress').style.display='block';$('recFill').style.width='0%';
-  $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析基金数据...</div>';
+  $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在检测市场环境...</div>';
   recResults=[];
   var codes=POP_FUNDS.filter(function(c){return c.length===6});
 
-  // Try detect market regime, but always start analysis
+  // Step 1: detect regime (wait for it)
   fetchNav('000961').then(function(vals){
     if(vals)marketRegime=detectRegime(vals);
     var regimeLabel={bull:'🐂 牛市 - 加重动量',bear:'🐻 熊市 - 加重风控',side:'🦀 震荡 - 均衡配置'};
     var regimeCls={bull:'bull',bear:'bear',side:'side'};
     $('regimeTag').innerHTML='<span class="regime '+regimeCls[marketRegime]+'">'+(regimeLabel[marketRegime]||'📊 分析中')+'</span>';
     $('recSub').textContent='基于9个量化因子 · '+(marketRegime==='bull'?'牛市':marketRegime==='bear'?'熊市':'震荡市')+'环境 · 数据每日更新';
+    // Step 2: analyze funds
+    $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析 '+codes.length+' 只基金...</div>';
     startRecAnalysis(codes);
   }).catch(function(){
     marketRegime='side';
     $('regimeTag').innerHTML='<span class="regime side">🦀 震荡 - 均衡配置</span>';
     $('recSub').textContent='基于9个量化因子 · 震荡市环境（默认）';
+    $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析 '+codes.length+' 只基金...</div>';
     startRecAnalysis(codes);
   });
 }
