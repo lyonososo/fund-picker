@@ -617,6 +617,7 @@ function runRecommendation(){
 }
 
 function finishRankAnalysis(allItems){
+  console.log('[FINISH] called with', Object.keys(allItems).length, 'items');
   try {
   var codes=Object.keys(allItems);
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在计算 '+codes.length+' 只基金的量化评分...</div>';
