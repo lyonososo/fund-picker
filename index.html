@@ -277,20 +277,22 @@ function pjq(){
 }
 
 // ===== RANK API (no Referer needed!) =====
+// The API returns "var rankData = {...}" — no callback, so we poll for it
 function loadRankData(ft,sc,pi,pn){
   return new Promise(function(resolve){
-    var cbName='_rank_'+ft+'_'+sc+'_'+pi+'_'+Date.now();
-    window[cbName]=function(){
-      var data=window.rankData;
-      delete window[cbName];
-      if(data&&data.datas)resolve(data.datas);
-      else resolve([]);
-    };
+    var oldData=window.rankData;
     var s=document.createElement('script');
     s.src='https://fund.eastmoney.com/data/FundGuideapi.aspx?dt=0&ft='+ft+'&sd=&ed=&sc='+sc+'&st=desc&pi='+pi+'&pn='+pn+'&zf=diy&sh=list&_t='+Date.now();
-    s.onerror=function(){delete window[cbName];resolve([])};
+    var tries=0;
+    var checker=setInterval(function(){
+      tries++;
+      if(window.rankData!==oldData&&window.rankData&&window.rankData.datas){
+        clearInterval(checker);resolve(window.rankData.datas);
+      }
+      if(tries>150){clearInterval(checker);resolve([])}
+    },100);
+    s.onerror=function(){clearInterval(checker);resolve([])};
     document.head.appendChild(s);
-    setTimeout(function(){if(window[cbName]){delete window[cbName];resolve([])}},15000);
   });
 }
 
