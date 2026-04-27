@@ -565,21 +565,21 @@ function detectRegime(vals){
 
 // ===== RECOMMENDATION ENGINE =====
 function startRecAnalysis(codes){
-  var total=codes.length;var done=0;var batch=0;
-  function processBatch(){
-    var s=batch*10;var e=Math.min(s+10,total);
-    if(s>=total){finishRec();return}
-    var pending=e-s;
-    for(var i=s;i<e;i++){
+  var total=codes.length;var done=0;var idx=0;var CONCURRENCY=3;
+  function processNext(){
+    while(idx<total && idx-done<CONCURRENCY){
       (function(code){
         fetchNav(code).then(function(vals){
           if(vals){var factors=calcFactors(vals);if(factors){var score=calcCompositeScore(factors,marketRegime);var f=null;for(var j=0;j<fundDB.length;j++){if(fundDB[j].code===code){f=fundDB[j];break}}var d=rtCache[code];recResults.push({code:code,name:f?f.name:code,type:f?f.type:'qt',typeName:f?f.typeName:'',score:score,factors:factors,dwjz:d?d.dwjz:null,gszzl:d?d.gszzl:null,jzrq:d?d.jzrq:''})}}
-          done++;pending--;if(pending===0){$('recFill').style.width=Math.round(done/total*100)+'%';renderRecList();batch++;setTimeout(processBatch,50)}
-        }).catch(function(){done++;pending--;if(pending===0){$('recFill').style.width=Math.round(done/total*100)+'%';batch++;setTimeout(processBatch,50)}});
-      })(codes[i]);
+          done++;$('recFill').style.width=Math.round(done/total*100)+'%';
+          if(done%10===0)renderRecList();
+          processNext();
+        }).catch(function(){done++;$('recFill').style.width=Math.round(done/total*100)+'%';processNext()});
+      })(codes[idx++]);
     }
+    if(done>=total)finishRec();
   }
-  processBatch();
+  processNext();
 }
 
 function runRecommendation(){
