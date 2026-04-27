@@ -604,7 +604,9 @@ function runRecommendation(){
     if(queue.length===0){finishRankAnalysis(allItems);return}
     var req=queue.shift();
     loadRankData(req.ft,req.sc,1,50).then(function(datas){
+      if(!Array.isArray(datas)){processNext();return}
       for(var i=0;i<datas.length;i++){
+        if(typeof datas[i]!=='string')continue;
         var item=parseRankItem(datas[i]);
         if(item&&item.code)allItems[item.code]=item;
       }
