@@ -304,9 +304,10 @@ function loadRankData(ft,sc,pi,pn){
   });
 }
 
-// Parse rank data fields:
-// [0]code [1]name [2]pinyin [3]type [4]近1周 [5]近1月 [6]近3月 [7]近6月 [8]近1年 [9]近2年 [10]近3年 [11]今年 [12]成立来
-// [13]? [14]? [15]净值日期 [16]净值 [17]日涨跌 [18]? [19]手续费 [20]? [21]? [22]? [23]?
+// Parse rank data fields (verified by NAV calculation for 740001):
+// [0]code [1]name [2]pinyin [3]type
+// [4]今年来 [5]近1周 [6]近1月 [7]近3月 [8]近6月 [9]近1年 [10]近2年 [11]近3年
+// [12]成立来 [13]? [14]? [15]净值日期 [16]净值 [17]日涨跌 [18]? [19]手续费
 function parseRankItem(str){
   if(typeof str!=='string')return null;
   var f=str.split(',');
@@ -314,9 +315,9 @@ function parseRankItem(str){
   return{
     code:f[0],name:f[1],pinyin:(f[2]||'').toLowerCase(),typeName:f[3],
     type:classifyTypeFromRank(f[3]),
-    r1w:pf(f[4]),r1m:pf(f[5]),r3m:pf(f[6]),r6m:pf(f[7]),
-    r1y:pf(f[8]),r2y:pf(f[9]),r3y:pf(f[10]),
-    ytd:pf(f[11]),rAll:pf(f[12]),
+    r1w:pf(f[5]),r1m:pf(f[6]),r3m:pf(f[7]),r6m:pf(f[8]),
+    r1y:pf(f[9]),r2y:pf(f[10]),r3y:pf(f[11]),
+    ytd:pf(f[4]),rAll:pf(f[12]),
     jzrq:f[15]||'',dwjz:pf(f[16]),dailyR:pf(f[17])
   };
 }
@@ -620,7 +621,6 @@ function runRecommendation(){
 }
 
 function finishRankAnalysis(allItems){
-  try {
   var codes=Object.keys(allItems);
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在计算 '+codes.length+' 只基金的量化评分...</div>';
 
@@ -653,10 +653,6 @@ function finishRankAnalysis(allItems){
   $('recProgress').style.display='none';
   renderRecList();
   toast('推荐分析完成，共 '+recResults.length+' 只基金');
-  } catch(e) {
-    $('recList').innerHTML='<div class="empty"><div class="ei">❌</div><h3>计算出错</h3><p>'+e.message+'</p></div>';
-    $('recProgress').style.display='none';
-  }
 }
 
 function renderRecChips(){
