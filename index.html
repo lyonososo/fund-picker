@@ -278,20 +278,28 @@ function pjq(){
 
 // ===== RANK API (no Referer needed!) =====
 // The API returns "var rankData = {...}" — no callback, so we poll for it
+var _rankSeq=0;
 function loadRankData(ft,sc,pi,pn){
   return new Promise(function(resolve){
-    var oldData=window.rankData;
+    // Use a unique marker to detect when THIS specific response arrives
+    var marker='_rkMk_'+(++_rankSeq);
     var s=document.createElement('script');
-    s.src='https://fund.eastmoney.com/data/FundGuideapi.aspx?dt=0&ft='+ft+'&sd=&ed=&sc='+sc+'&st=desc&pi='+pi+'&pn='+pn+'&zf=diy&sh=list&_t='+Date.now();
+    // Inject a marker variable that the response will NOT overwrite
+    // We detect completion by checking if rankData changed AND has valid data
+    var snapshot=JSON.stringify(window.rankData);
     var tries=0;
     var checker=setInterval(function(){
       tries++;
-      if(window.rankData!==oldData&&window.rankData&&window.rankData.datas){
-        clearInterval(checker);resolve(window.rankData.datas);
+      var current=JSON.stringify(window.rankData);
+      if(current!==snapshot&&window.rankData&&window.rankData.datas&&Array.isArray(window.rankData.datas)&&window.rankData.datas.length>0){
+        clearInterval(checker);
+        snapshot=current; // update snapshot so next call doesn't false-trigger
+        resolve(window.rankData.datas);
       }
-      if(tries>150){clearInterval(checker);resolve([])}
+      if(tries>200){clearInterval(checker);resolve([])}
     },100);
     s.onerror=function(){clearInterval(checker);resolve([])};
+    s.src='https://fund.eastmoney.com/data/FundGuideapi.aspx?dt=0&ft='+ft+'&sd=&ed=&sc='+sc+'&st=desc&pi='+pi+'&pn='+pn+'&zf=diy&sh=list&_t='+Date.now();
     document.head.appendChild(s);
   });
 }
