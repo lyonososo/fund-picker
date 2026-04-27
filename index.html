@@ -308,6 +308,7 @@ function loadRankData(ft,sc,pi,pn){
 // [0]code [1]name [2]pinyin [3]type [4]近1周 [5]近1月 [6]近3月 [7]近6月 [8]近1年 [9]近2年 [10]近3年 [11]今年 [12]成立来
 // [13]? [14]? [15]净值日期 [16]净值 [17]日涨跌 [18]? [19]手续费 [20]? [21]? [22]? [23]?
 function parseRankItem(str){
+  if(typeof str!=='string')return null;
   var f=str.split(',');
   if(f.length<18)return null;
   return{
@@ -617,7 +618,6 @@ function runRecommendation(){
 }
 
 function finishRankAnalysis(allItems){
-  console.log('[FINISH] called with', Object.keys(allItems).length, 'items');
   try {
   var codes=Object.keys(allItems);
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在计算 '+codes.length+' 只基金的量化评分...</div>';
