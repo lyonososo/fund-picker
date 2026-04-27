@@ -136,14 +136,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-
 .modal .btns button{flex:1;height:40px;border-radius:8px;font-size:14px;cursor:pointer;border:1px solid var(--b)}
 .modal .btns .ok{background:var(--p);color:#fff;border-color:var(--p)}
 .modal .btns .cc{background:var(--card)}
-/* Recommendation page */
 .rec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .rec-hd h2{font-size:16px;font-weight:700}
 .rec-hd .regime{font-size:12px;padding:3px 8px;border-radius:4px;font-weight:600}
 .rec-hd .regime.bull{background:#dcfce7;color:#166534}
 .rec-hd .regime.bear{background:#fee2e2;color:#991b1b}
 .rec-hd .regime.side{background:#fef9c3;color:#854d0e}
-.rec-hd .regime.ld{background:#f1f5f9;color:#64748b}
 .rec-sub{font-size:12px;color:var(--t2);margin-bottom:12px}
 .rc{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s;position:relative}
 .rc:active{transform:scale(.98)}
@@ -225,34 +223,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-
 (function(){
 'use strict';
 
-// ===== TYPE SYSTEM =====
 var TYPE_MAP={gp:'股票型',hh:'混合型',zq:'债券型',zs:'指数型',qdii:'QDII',fof:'FOF',hb:'货币型',qt:'其他'};
 var TYPE_CLS={gp:'',hh:'',zq:'zq',zs:'zs',qdii:'qd',fof:'fof',hb:'hb',qt:'qt'};
 var TYPE_CHIPS=[{k:'all',l:'全部'},{k:'gp',l:'股票型'},{k:'hh',l:'混合型'},{k:'zq',l:'债券型'},{k:'zs',l:'指数型'},{k:'qdii',l:'QDII'},{k:'fof',l:'FOF'}];
 function classifyType(s){if(!s)return'qt';if(s.indexOf('股票')>-1)return'gp';if(s.indexOf('混合')>-1)return'hh';if(s.indexOf('债券')>-1)return'zq';if(s.indexOf('指数')>-1)return'zs';if(s.indexOf('QDII')>-1||s.indexOf('qdii')>-1)return'qdii';if(s.indexOf('FOF')>-1)return'fof';if(s.indexOf('货币')>-1)return'hb';return'qt'}
-
-// ===== POPULAR FUNDS FOR RECOMMENDATION (~200) =====
-var POP_FUNDS=[
-'000001','000011','000051','000083','000215','000248','000402','000478','000513','000577',
-'000605','000668','000697','000751','000828','000834','000961','000977','001156','001186',
-'001475','001510','001543','001549','001632','001668','001714','001717','001838','001938',
-'001986','002079','002190','002263','002311','002414','002611','002621','002623','002791',
-'002903','003095','003096','003296','003384','003567','003834','004067','004068','004439',
-'004510','004681','004744','004851','005827','005911','005918','006228','006311','006408',
-'006614','006751','007119','007380','007541','007868','008285','008903','009248','009570',
-'009633','010267','010592','011103','011607','012414','012863','012972','013284','013326',
-'014277','014553','015016','015854','016516','017102','017497','018006','019549','020002',
-'021292','021562','022202','022911','023583','023906','024299','025969','026105','026955',
-'027577','028283','029531','030173','030575','031090','031186','031536','032298','033465',
-'040026','050026','070009','070032','090010','110011','110022','110025','112070','113001',
-'159915','159934','159949','159966','161725','162605','163406','163415','164906','165312',
-'166001','180031','200002','202003','202009','202101','202301','206018','210004','213008',
-'217010','217017','233009','240009','260108','260116','270002','270042','288066','290012',
-'310398','319008','320007','360001','410001','420001','460001','481001','501010','501050',
-'519001','519002','519005','519011','519015','519036','519066','519068','519069','519077',
-'519100','519180','519191','519194','519195','519674','519697','519712','519736','519772',
-'519825','519884','590008','660001','660004','710001','860001','880001','900001','960001'
-];
+function classifyTypeFromRank(s){if(!s)return'qt';if(s.indexOf('股票')>-1)return'gp';if(s.indexOf('混合')>-1)return'hh';if(s.indexOf('债券')>-1)return'zq';if(s.indexOf('指数')>-1)return'zs';if(s.indexOf('QDII')>-1)return'qdii';if(s.indexOf('FOF')>-1)return'fof';if(s.indexOf('货币')>-1)return'hb';return'qt'}
 
 // ===== STATE =====
 var fundDB=[];
@@ -276,8 +251,9 @@ function fmt(v,d){d=d||4;return v==null||isNaN(v)?'--':Number(v).toFixed(d)}
 function fmtPct(v){if(v==null||isNaN(v))return'--';var s=Number(v).toFixed(2);return(v>=0?'+':'')+s+'%'}
 function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2000)}
 function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+function pf(v){return v==null||v===''||isNaN(Number(v))?null:Number(v)}
 
-// ===== JSONP QUEUE =====
+// ===== JSONP QUEUE FOR REAL-TIME =====
 var jq=[],jr=false;
 function loadRT(code,cb){
   if(rtCache[code]){cb(rtCache[code]);return}
@@ -298,6 +274,40 @@ function pjq(){
   s.onerror=function(){delete rtLoading[item.code];item.cb(null);s.remove();setTimeout(pjq,20)};
   s.onload=function(){s.remove()};
   document.head.appendChild(s);
+}
+
+// ===== RANK API (no Referer needed!) =====
+function loadRankData(ft,sc,pi,pn){
+  return new Promise(function(resolve){
+    var cbName='_rank_'+ft+'_'+sc+'_'+pi+'_'+Date.now();
+    window[cbName]=function(){
+      var data=window.rankData;
+      delete window[cbName];
+      if(data&&data.datas)resolve(data.datas);
+      else resolve([]);
+    };
+    var s=document.createElement('script');
+    s.src='https://fund.eastmoney.com/data/FundGuideapi.aspx?dt=0&ft='+ft+'&sd=&ed=&sc='+sc+'&st=desc&pi='+pi+'&pn='+pn+'&zf=diy&sh=list&_t='+Date.now();
+    s.onerror=function(){delete window[cbName];resolve([])};
+    document.head.appendChild(s);
+    setTimeout(function(){if(window[cbName]){delete window[cbName];resolve([])}},15000);
+  });
+}
+
+// Parse rank data fields:
+// [0]code [1]name [2]pinyin [3]type [4]近1周 [5]近1月 [6]近3月 [7]近6月 [8]近1年 [9]近2年 [10]近3年 [11]今年 [12]成立来
+// [13]? [14]? [15]净值日期 [16]净值 [17]日涨跌 [18]? [19]手续费 [20]? [21]? [22]? [23]?
+function parseRankItem(str){
+  var f=str.split(',');
+  if(f.length<18)return null;
+  return{
+    code:f[0],name:f[1],pinyin:(f[2]||'').toLowerCase(),typeName:f[3],
+    type:classifyTypeFromRank(f[3]),
+    r1w:pf(f[4]),r1m:pf(f[5]),r3m:pf(f[6]),r6m:pf(f[7]),
+    r1y:pf(f[8]),r2y:pf(f[9]),r3y:pf(f[10]),
+    ytd:pf(f[11]),rAll:pf(f[12]),
+    jzrq:f[15]||'',dwjz:pf(f[16]),dailyR:pf(f[17])
+  };
 }
 
 // ===== LOAD DATABASE =====
@@ -332,7 +342,6 @@ function bgBatch(){
   var pending=codes.length;
   codes.forEach(function(code){loadRT(code,function(){pending--;if(pending===0){$('rtFill').style.width=Math.min(100,Math.round(rtTotal/Math.min(filtered.length,500)*100))+'%';if(state.sort==='gz')renderList();setTimeout(bgBatch,50)}})});
 }
-
 function loadPageRT(){
   var start=(state.page-1)*state.perPage,end=Math.min(start+state.perPage,filtered.length);
   for(var i=start;i<end;i++){var code=filtered[i];if(code&&!rtCache[code]&&!rtLoading[code]){(function(c){loadRT(c,function(d){if(d)updateCard(c)})})(code)}}
@@ -384,28 +393,33 @@ function showDetail(code){
   var f=null;for(var j=0;j<fundDB.length;j++){if(fundDB[j].code===code){f=fundDB[j];break}}if(!f){toast('基金不存在');return}
   var d=rtCache[code],hasRT=!!d,up=hasRT&&d.gszzl>=0;
   var dp=$('detailPage');
-  dp.innerHTML='<div class="dt"><div class="dh"><button onclick="closeDetail()">←</button><h2>'+f.name+'</h2></div><div class="body"><div class="info"><div class="nm">'+f.name+'</div><div class="meta"><span>📋 '+f.code+'</span><span>🏷️ '+(TYPE_MAP[f.type]||f.typeName)+'</span>'+(hasRT?'<span>📅 '+d.jzrq+'</span>':'')+'</div></div><div class="nav-box"><div class="val">'+(hasRT?fmt(d.dwjz):'--')+'</div><div class="date">单位净值'+(hasRT?' · '+d.jzrq:'')+'</div>'+(hasRT?'<div class="est '+(up?'up':'dn')+'">实时估值 '+fmt(d.gsz)+' ('+fmtPct(d.gszzl)+')</div>':'<div class="est" style="color:var(--t2)">加载中...</div>')+'</div><div class="acts2"><button class="'+(state.favs.indexOf(code)>-1?'on':'')+'" onclick="toggleFav(\''+code+'\');showDetail(\''+code+'\')">'+(state.favs.indexOf(code)>-1?'❤️ 已收藏':'🤍 收藏')+'</button><button class="'+(state.compare.indexOf(code)>-1?'on':'')+'" onclick="addToCompare(\''+code+'\');showDetail(\''+code+'\')">⚖️ 对比</button><button onclick="showAddHoldModal(\''+code+'\',\''+f.name.replace(/'/g,"\\'")+'\')">💰 加仓</button></div><div class="chart-box"><h3>📈 近期净值走势</h3><canvas id="detailChart"></canvas></div><div class="stats"><h3>📊 关键指标</h3><div class="sg" id="detailStats"><div class="ld"><div class="sp"></div>加载中...</div></div></div></div></div>';
+  dp.innerHTML='<div class="dt"><div class="dh"><button onclick="closeDetail()">←</button><h2>'+f.name+'</h2></div><div class="body"><div class="info"><div class="nm">'+f.name+'</div><div class="meta"><span>📋 '+f.code+'</span><span>🏷️ '+(TYPE_MAP[f.type]||f.typeName)+'</span>'+(hasRT?'<span>📅 '+d.jzrq+'</span>':'')+'</div></div><div class="nav-box"><div class="val">'+(hasRT?fmt(d.dwjz):'--')+'</div><div class="date">单位净值'+(hasRT?' · '+d.jzrq:'')+'</div>'+(hasRT?'<div class="est '+(up?'up':'dn')+'">实时估值 '+fmt(d.gsz)+' ('+fmtPct(d.gszzl)+')</div>':'<div class="est" style="color:var(--t2)">加载中...</div>')+'</div><div class="acts2"><button class="'+(state.favs.indexOf(code)>-1?'on':'')+'" onclick="toggleFav(\''+code+'\');showDetail(\''+code+'\')">'+(state.favs.indexOf(code)>-1?'❤️ 已收藏':'🤍 收藏')+'</button><button class="'+(state.compare.indexOf(code)>-1?'on':'')+'" onclick="addToCompare(\''+code+'\');showDetail(\''+code+'\')">⚖️ 对比</button><button onclick="showAddHoldModal(\''+code+'\',\''+f.name.replace(/'/g,"\\'")+'\')">💰 加仓</button></div><div class="stats"><h3>📊 基金信息</h3><div class="sg" id="detailStats"><div class="ld"><div class="sp"></div>加载中...</div></div></div></div></div>';
   dp.style.display='block';document.body.style.overflow='hidden';
   if(!hasRT){loadRT(code,function(rd){if(rd)showDetail(code)})}
-  loadDetailNav(code);
+  loadDetailFromRank(code);
 }
 function closeDetail(){$('detailPage').style.display='none';document.body.style.overflow='';if(state.charts.detail){state.charts.detail.destroy();state.charts.detail=null}}
-function loadDetailNav(code){
-  fetchNav(code).then(function(list){
-    if(!list||list.length===0){$('detailStats').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--t2);padding:20px">暂无历史数据</div>';return}
-    var vals=list;
-    var labels=[];for(var i=0;i<vals.length;i++){labels.push('')};
-    var ctx=$('detailChart');if(state.charts.detail)state.charts.detail.destroy();
-    state.charts.detail=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'净值',data:vals,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.1)',fill:true,tension:0.3,pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxTicksLimit:8},grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}}}}});
-    var rets=[];for(var i=1;i<vals.length;i++){rets.push((vals[i]-vals[i-1])/vals[i-1]*100)}
-    var avgR=rets.length>0?rets.reduce(function(a,b){return a+b},0)/rets.length:0;
-    var posR=rets.filter(function(r){return r>0}).length;var winRate=rets.length>0?(posR/rets.length*100):0;
-    var mx=vals[0],maxDD=0;for(var i=1;i<vals.length;i++){if(vals[i]>mx)mx=vals[i];var dd2=(mx-vals[i])/mx*100;if(dd2>maxDD)maxDD=dd2}
-    var totalR=(vals[vals.length-1]-vals[0])/vals[0]*100;
-    var vari=rets.length>0?rets.reduce(function(s,r){return s+Math.pow(r-avgR,2)},0)/rets.length:0;var stdDev=Math.sqrt(vari);
-    var sharpe=stdDev>0?(avgR/stdDev*Math.sqrt(252)):0;
-    $('detailStats').innerHTML='<div class="si"><div class="sv" style="color:'+(totalR>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(totalR)+'</div><div class="sl">区间收益</div></div><div class="si"><div class="sv" style="color:'+(avgR>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(avgR)+'</div><div class="sl">日均收益</div></div><div class="si"><div class="sv">'+fmt(winRate,1)+'%</div><div class="sl">胜率</div></div><div class="si"><div class="sv" style="color:var(--red)">'+fmt(maxDD,1)+'%</div><div class="sl">最大回撤</div></div><div class="si"><div class="sv">'+fmt(stdDev,2)+'%</div><div class="sl">日波动率</div></div><div class="si"><div class="sv">'+fmt(sharpe,2)+'</div><div class="sl">夏普比率</div></div>';
-  }).catch(function(){$('detailStats').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--t2);padding:20px">数据加载失败</div>'});
+
+function loadDetailFromRank(code){
+  // Find in recResults first
+  var found=null;
+  for(var i=0;i<recResults.length;i++){if(recResults[i].code===code){found=recResults[i];break}}
+  if(found&&found.raw){
+    var r=found.raw;
+    var html='<div class="si"><div class="sv" style="color:'+(r.ytd>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.ytd)+'</div><div class="sl">今年以来</div></div>';
+    html+='<div class="si"><div class="sv" style="color:'+(r.r1m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.r1m)+'</div><div class="sl">近1月</div></div>';
+    html+='<div class="si"><div class="sv" style="color:'+(r.r3m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.r3m)+'</div><div class="sl">近3月</div></div>';
+    html+='<div class="si"><div class="sv" style="color:'+(r.r6m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.r6m)+'</div><div class="sl">近6月</div></div>';
+    html+='<div class="si"><div class="sv" style="color:'+(r.r1y>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.r1y)+'</div><div class="sl">近1年</div></div>';
+    html+='<div class="si"><div class="sv" style="color:'+(r.r3y>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(r.r3y)+'</div><div class="sl">近3年</div></div>';
+    if(found.score){
+      html+='<div class="si"><div class="sv" style="color:'+(found.score.total>=70?'var(--grn)':found.score.total>=50?'var(--org)':'var(--red)')+'">'+found.score.total+'</div><div class="sl">推荐指数</div></div>';
+      html+='<div class="si"><div class="sv">'+fmt(found.factors.sharpe,2)+'</div><div class="sl">夏普比率</div></div>';
+    }
+    $('detailStats').innerHTML=html;
+  } else {
+    $('detailStats').innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--t2);padding:20px;font-size:13px">在推荐页分析后可查看详细数据</div>';
+  }
 }
 
 // ===== HOLDING MODAL =====
@@ -438,96 +452,77 @@ function renderCompareBody(){
   setTimeout(function(){var ctx=$('cmpChart');if(!ctx)return;if(state.charts.cmp)state.charts.cmp.destroy();state.charts.cmp=new Chart(ctx,{type:'bar',data:{labels:funds.map(function(f){return f.name.length>6?f.name.substr(0,6)+'…':f.name}),datasets:[{label:'涨跌幅(%)',data:funds.map(function(f){return f.d?f.d.gszzl:0}),backgroundColor:funds.map(function(f){return f.d&&f.d.gszzl>=0?'rgba(239,68,68,0.7)':'rgba(22,163,74,0.7)'}),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:function(v){return v+'%'}}}}}})},100);
 }
 
-// ===== QUANTITATIVE ENGINE =====
-// Queue-based JSONP (same proven pattern as loadRT)
-var _nq=[],_nactive=0,_NSLOTS=3,_nid=0;
-function fetchNav(code){
-  return new Promise(function(resolve){
-    _nq.push({code:code,resolve:resolve});
-    _nprocessNav();
-  });
-}
-function _nprocessNav(){
-  while(_nactive<_NSLOTS&&_nq.length>0){
-    _nactive++;
-    var item=_nq.shift();
-    var myId=++_nid;
-    (function(id,it){
-      window['_fhN'+id]=function(d){
-        delete window['_fhN'+id];_nactive--;
-        var list=(d.Data&&d.Data.LSJZList)||[];
-        if(list.length<10)it.resolve(null);
-        else{list.reverse();it.resolve(list.map(function(x){return parseFloat(x.DWJZ)}))}
-        _nprocessNav();
-      };
-      var s=document.createElement('script');
-      s.src='https://api.fund.eastmoney.com/f10/lsjz?callback=_fhN'+id+'&fundCode='+it.code+'&pageIndex=1&pageSize=120&_t='+Date.now();
-      s.onerror=function(){delete window['_fhN'+id];_nactive--;it.resolve(null);_nprocessNav()};
-      document.head.appendChild(s);
-      setTimeout(function(){if(window['_fhN'+id]){delete window['_fhN'+id];_nactive--;it.resolve(null);_nprocessNav()}},12000);
-    })(myId,item);
+// ===== QUANTITATIVE ENGINE (using rank data) =====
+function calcFactors(r){
+  // r is parsed rank item with r1w,r1m,r3m,r6m,r1y,r2y,r3y,ytd,rAll,dailyR
+  if(!r)return null;
+  // 1. Momentum: weighted multi-period returns
+  var momentum=0;
+  var mc=0;
+  if(r.r1m!=null){momentum+=r.r1m*0.35;mc+=0.35}
+  if(r.r3m!=null){momentum+=r.r3m*0.30;mc+=0.30}
+  if(r.r6m!=null){momentum+=r.r6m*0.20;mc+=0.20}
+  if(r.r1y!=null){momentum+=r.r1y*0.15;mc+=0.15}
+  if(mc>0)momentum/=mc; else momentum=0;
+
+  // 2. Mean reversion: if recent underperformed vs longer term, potential bounce
+  var meanRev=0;
+  if(r.r1m!=null&&r.r3m!=null)meanRev=r.r3m-r.r1m; // if 3m > 1m, recently dropped = buy signal
+
+  // 3. Risk-adjusted return (Sharpe proxy): annual return / monthly volatility
+  var sharpe=0;
+  if(r.r1y!=null&&r.r1m!=null){
+    // Approximate: annual return / abs(monthly return) as volatility proxy
+    var volProxy=Math.abs(r.r1m);
+    if(volProxy>0.5)sharpe=r.r1y/volProxy;
+    else sharpe=r.r1y*2; // cap for low-vol funds
   }
-}
 
-function calcFactors(vals){
-  if(!vals||vals.length<20)return null;
-  var n=vals.length;
-  // Daily returns
-  var rets=[];for(var i=1;i<n;i++){rets.push((vals[i]-vals[i-1])/vals[i-1]*100)}
-  var avgR=rets.reduce(function(a,b){return a+b},0)/rets.length;
-  var vari=rets.reduce(function(s,r){return s+Math.pow(r-avgR,2)},0)/rets.length;
-  var stdDev=Math.sqrt(vari);
-  var annStd=stdDev*Math.sqrt(252);
-  var sharpe=stdDev>0?(avgR/stdDev*Math.sqrt(252)):0;
+  // 4. Volatility control: lower daily fluctuation = better
+  var vol=Math.abs(r.dailyR||0);
 
-  // 1. Momentum (1m, 3m, 6m)
-  var m1=n>22?((vals[n-1]-vals[n-22])/vals[n-22]*100):0;
-  var m3=n>66?((vals[n-1]-vals[Math.max(0,n-66)])/vals[Math.max(0,n-66)]*100):0;
-  var m6=n>132?((vals[n-1]-vals[Math.max(0,n-132)])/vals[Math.max(0,n-132)]*100):m3;
-  var momentum=(m1*0.4+m3*0.35+m6*0.25);
+  // 5. Trend strength: consistent positive returns across periods
+  var trend=0;
+  if(r.r1m!=null&&r.r1m>0)trend+=25;
+  if(r.r3m!=null&&r.r3m>0)trend+=25;
+  if(r.r6m!=null&&r.r6m>0)trend+=25;
+  if(r.r1y!=null&&r.r1y>0)trend+=25;
+  // Bonus for consistency
+  if(r.r1m>0&&r.r3m>0&&r.r6m>0)trend+=20;
+  if(r.r1m>0&&r.r3m>0&&r.r6m>0&&r.r1y>0)trend+=20;
 
-  // 2. Mean reversion
-  var recent20=rets.slice(-20);var recent20avg=recent20.reduce(function(a,b){return a+b},0)/recent20.length;
-  var older=rets.slice(0,-20);var olderAvg=older.length>0?older.reduce(function(a,b){return a+b},0)/older.length:0;
-  var meanRev=olderAvg-recent20avg; // positive = recently dropped more = buy signal
+  // 6. Max drawdown proxy: worst period return
+  var maxDD=0;
+  var periods=[r.r1m,r.r3m,r.r6m,r.r1y,r.r2y,r.r3y];
+  for(var i=0;i<periods.length;i++){if(periods[i]!=null&&periods[i]<maxDD)maxDD=periods[i]}
+  maxDD=Math.abs(maxDD);
 
-  // 3. Risk-adjusted return (Sharpe already calculated)
-  var riskAdj=sharpe;
-
-  // 4. Volatility control (lower is better)
-  var vol=annStd;
-
-  // 5. Trend strength (MA crossover)
-  var ma20=n>20?vals.slice(-20).reduce(function(a,b){return a+b},0)/20:vals[n-1];
-  var ma60=n>60?vals.slice(-60).reduce(function(a,b){return a+b},0)/60:ma20;
-  var trendScore=0;
-  if(vals[n-1]>ma20)trendScore+=50;if(vals[n-1]>ma60)trendScore+=30;
-  if(ma20>ma60)trendScore+=20;
-
-  // 6. Max drawdown
-  var mx=vals[0],maxDD=0;for(var i=1;i<n;i++){if(vals[i]>mx)mx=vals[i];var dd=(mx-vals[i])/mx*100;if(dd>maxDD)maxDD=dd}
-
-  // 7. Drawdown recovery
-  var inDD=false,ddStart=0,recoveryDays=[];
-  for(var i=1;i<n;i++){
-    if(!inDD&&vals[i]<vals[i-1]){inDD=true;ddStart=i}
-    if(inDD&&vals[i]>=vals[ddStart]){recoveryDays.push(i-ddStart);inDD=false}
+  // 7. Recovery: if recent > longer period low, recovering
+  var recovery=0;
+  if(r.r3m!=null&&r.r6m!=null){
+    if(r.r3m>r.r6m)recovery=60; // recovering
+    else if(r.r3m>r.r6m*0.5)recovery=40;
+    else recovery=20;
   }
-  var avgRecovery=recoveryDays.length>0?recoveryDays.reduce(function(a,b){return a+b},0)/recoveryDays.length:999;
 
-  // 8. Calmar ratio
-  var annReturn=Math.pow(vals[n-1]/vals[0],252/Math.max(1,rets.length))-1;
-  var calmar=maxDD>0?(annReturn*100/maxDD):0;
+  // 8. Calmar proxy: annual return / max drawdown
+  var calmar=0;
+  if(r.r1y!=null&&maxDD>0)calmar=r.r1y/maxDD;
 
-  // 9. Win rate
-  var winRate=rets.filter(function(r){return r>0}).length/rets.length*100;
+  // 9. Win rate proxy: ratio of positive periods
+  var positivePeriods=0,totalPeriods=0;
+  if(r.r1w!=null){totalPeriods++;if(r.r1w>0)positivePeriods++}
+  if(r.r1m!=null){totalPeriods++;if(r.r1m>0)positivePeriods++}
+  if(r.r3m!=null){totalPeriods++;if(r.r3m>0)positivePeriods++}
+  if(r.r6m!=null){totalPeriods++;if(r.r6m>0)positivePeriods++}
+  if(r.r1y!=null){totalPeriods++;if(r.r1y>0)positivePeriods++}
+  if(r.r3y!=null){totalPeriods++;if(r.r3y>0)positivePeriods++}
+  var winRate=totalPeriods>0?(positivePeriods/totalPeriods*100):50;
 
-  return {
-    momentum:momentum,m1:m1,m3:m3,m6:m6,
-    meanRev:meanRev,riskAdj:riskAdj,sharpe:sharpe,
-    vol:vol,maxDD:maxDD,trend:trendScore,
-    avgRecovery:avgRecovery,calmar:calmar,winRate:winRate,
-    annReturn:annReturn*100
+  return{
+    momentum:momentum,meanRev:meanRev,sharpe:sharpe,vol:vol,
+    trend:trend,maxDD:maxDD,recovery:recovery,calmar:calmar,winRate:winRate,
+    r1m:r.r1m,r3m:r.r3m,r6m:r.r6m,r1y:r.r1y,ytd:r.ytd
   };
 }
 
@@ -539,14 +534,14 @@ function scoreFactor(val,best,worst){
 function calcCompositeScore(factors,regime){
   if(!factors)return 0;
   var sMomentum=scoreFactor(factors.momentum,30,-30);
-  var sRiskAdj=scoreFactor(factors.sharpe,3,-1);
-  var sTrend=scoreFactor(factors.trend,100,0);
-  var sMeanRev=scoreFactor(factors.meanRev,3,-3);
-  var sVol=scoreFactor(-factors.vol,-5,-40); // lower vol = higher score
-  var sDD=scoreFactor(-factors.maxDD,-2,-50); // lower DD = higher score
-  var sRecovery=scoreFactor(-factors.avgRecovery,-5,-60); // faster = higher score
-  var sCalmar=scoreFactor(factors.calmar,3,-1);
-  var sWinRate=scoreFactor(factors.winRate,60,35);
+  var sRiskAdj=scoreFactor(factors.sharpe,5,-2);
+  var sTrend=scoreFactor(factors.trend,140,0);
+  var sMeanRev=scoreFactor(factors.meanRev,20,-20);
+  var sVol=scoreFactor(-factors.vol,-0.5,-5);
+  var sDD=scoreFactor(-factors.maxDD,-2,-50);
+  var sRecovery=scoreFactor(factors.recovery,60,20);
+  var sCalmar=scoreFactor(factors.calmar,5,-1);
+  var sWinRate=scoreFactor(factors.winRate,100,30);
 
   var w;
   if(regime==='bull'){w={m:0.30,ra:0.15,t:0.20,mr:0.10,v:0.05,dd:0.05,rec:0.05,cal:0.05,wr:0.05}}
@@ -554,7 +549,7 @@ function calcCompositeScore(factors,regime){
   else{w={m:0.20,ra:0.20,t:0.15,mr:0.15,v:0.10,dd:0.08,rec:0.05,cal:0.04,wr:0.03}}
 
   var total=Math.round(sMomentum*w.m+sRiskAdj*w.ra+sTrend*w.t+sMeanRev*w.mr+sVol*w.v+sDD*w.dd+sRecovery*w.rec+sCalmar*w.cal+sWinRate*w.wr);
-  return {
+  return{
     total:total,breakdown:{
       momentum:sMomentum,riskAdj:sRiskAdj,trend:sTrend,meanRev:sMeanRev,
       vol:sVol,drawdown:sDD,recovery:sRecovery,calmar:sCalmar,winRate:sWinRate
@@ -562,66 +557,91 @@ function calcCompositeScore(factors,regime){
   };
 }
 
-function detectRegime(vals){
-  if(!vals||vals.length<60)return'side';
-  var n=vals.length;
-  var ret60=(vals[n-1]-vals[Math.max(0,n-60)])/vals[Math.max(0,n-60)]*100;
-  var ma20=vals.slice(-20).reduce(function(a,b){return a+b},0)/20;
-  var ma60=vals.slice(-60).reduce(function(a,b){return a+b},0)/60;
-  if(ret60>5&&vals[n-1]>ma20&&vals[n-1]>ma60)return'bull';
-  if(ret60<-5&&vals[n-1]<ma20&&vals[n-1]<ma60)return'bear';
+function detectRegime(rankData){
+  // Use average YTD of top funds to detect market regime
+  if(!rankData||rankData.length===0)return'side';
+  var items=rankData.map(parseRankItem).filter(Boolean);
+  var posCount=0,negCount=0;
+  for(var i=0;i<items.length;i++){
+    if(items[i].r1m!=null){if(items[i].r1m>0)posCount++;else negCount++}
+  }
+  var ratio=posCount/(posCount+negCount);
+  if(ratio>0.7)return'bull';
+  if(ratio<0.3)return'bear';
   return'side';
 }
 
-// ===== RECOMMENDATION ENGINE =====
-function startRecAnalysis(codes){
-  var total=codes.length;var done=0;var idx=0;var CONCURRENCY=3;
+// ===== RECOMMENDATION ENGINE (using rank API) =====
+function runRecommendation(){
+  $('recProgress').style.display='block';$('recFill').style.width='0%';
+  $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在从天天基金获取排名数据...</div>';
+  recResults=[];
+
+  // Fetch ranking data for different fund types and sort criteria
+  var types=[{ft:'gp',label:'股票型'},{ft:'hh',label:'混合型'},{ft:'zq',label:'债券型'},{ft:'zs',label:'指数型'}];
+  var sorts=[{sc:'dzjf',label:'定投收益'},{sc:'3yzf',label:'近3月'},{sc:'6yzf',label:'近6月'},{sc:'1yzf',label:'近1年'}];
+  var allItems={};
+  var totalRequests=types.length*sorts.length;
+  var doneRequests=0;
+
   function processNext(){
-    while(idx<total && idx-done<CONCURRENCY){
-      (function(code){
-        fetchNav(code).then(function(vals){
-          if(vals){var factors=calcFactors(vals);if(factors){var score=calcCompositeScore(factors,marketRegime);var f=null;for(var j=0;j<fundDB.length;j++){if(fundDB[j].code===code){f=fundDB[j];break}}var d=rtCache[code];recResults.push({code:code,name:f?f.name:code,type:f?f.type:'qt',typeName:f?f.typeName:'',score:score,factors:factors,dwjz:d?d.dwjz:null,gszzl:d?d.gszzl:null,jzrq:d?d.jzrq:''})}}
-          done++;$('recFill').style.width=Math.round(done/total*100)+'%';
-          if(done%10===0)renderRecList();
-          processNext();
-        }).catch(function(){done++;$('recFill').style.width=Math.round(done/total*100)+'%';processNext()});
-      })(codes[idx++]);
+    if(types.length===0){
+      // All done, calculate scores
+      finishRankAnalysis(allItems);
+      return;
     }
-    if(done>=total)finishRec();
+    var t=types.shift();
+    var s=sorts.shift();
+    loadRankData(t.ft,s.sc,1,50).then(function(datas){
+      for(var i=0;i<datas.length;i++){
+        var item=parseRankItem(datas[i]);
+        if(item&&item.code)allItems[item.code]=item;
+      }
+      doneRequests++;
+      $('recFill').style.width=Math.round(doneRequests/totalRequests*50)+'%';
+      $('recList').innerHTML='<div class="ld"><div class="sp"></div>已获取 '+doneRequests+'/'+totalRequests+' 类排名数据...</div>';
+      processNext();
+    }).catch(function(){
+      doneRequests++;
+      processNext();
+    });
   }
   processNext();
 }
 
-function runRecommendation(){
-  $('recProgress').style.display='block';$('recFill').style.width='0%';
-  $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在检测市场环境...</div>';
-  recResults=[];
-  var codes=POP_FUNDS.filter(function(c){return c.length===6});
+function finishRankAnalysis(allItems){
+  var codes=Object.keys(allItems);
+  $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在计算 '+codes.length+' 只基金的量化评分...</div>';
 
-  // Step 1: detect regime (wait for it)
-  fetchNav('000961').then(function(vals){
-    if(vals)marketRegime=detectRegime(vals);
-    var regimeLabel={bull:'🐂 牛市 - 加重动量',bear:'🐻 熊市 - 加重风控',side:'🦀 震荡 - 均衡配置'};
-    var regimeCls={bull:'bull',bear:'bear',side:'side'};
-    $('regimeTag').innerHTML='<span class="regime '+regimeCls[marketRegime]+'">'+(regimeLabel[marketRegime]||'📊 分析中')+'</span>';
-    $('recSub').textContent='基于9个量化因子 · '+(marketRegime==='bull'?'牛市':marketRegime==='bear'?'熊市':'震荡市')+'环境 · 数据每日更新';
-    // Step 2: analyze funds
-    $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析 '+codes.length+' 只基金...</div>';
-    startRecAnalysis(codes);
-  }).catch(function(){
-    marketRegime='side';
-    $('regimeTag').innerHTML='<span class="regime side">🦀 震荡 - 均衡配置</span>';
-    $('recSub').textContent='基于9个量化因子 · 震荡市环境（默认）';
-    $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析 '+codes.length+' 只基金...</div>';
-    startRecAnalysis(codes);
-  });
-}
+  // Detect market regime
+  var sampleItems=Object.values(allItems).slice(0,50);
+  marketRegime=detectRegime(sampleItems);
+  var regimeLabel={bull:'🐂 牛市 - 加重动量',bear:'🐻 熊市 - 加重风控',side:'🦀 震荡 - 均衡配置'};
+  var regimeCls={bull:'bull',bear:'bear',side:'side'};
+  $('regimeTag').innerHTML='<span class="regime '+(regimeCls[marketRegime]||'side')+'">'+(regimeLabel[marketRegime]||'📊 分析中')+'</span>';
+  $('recSub').textContent='基于9个量化因子 · '+(marketRegime==='bull'?'牛市':marketRegime==='bear'?'熊市':'震荡市')+'环境 · 共分析 '+codes.length+' 只基金';
 
-function finishRec(){
-  $('recProgress').style.display='none';
+  // Calculate scores for each fund
+  var done=0;
+  var codeList=codes;
+  for(var i=0;i<codeList.length;i++){
+    var code=codeList[i];
+    var raw=allItems[code];
+    var factors=calcFactors(raw);
+    if(factors){
+      var score=calcCompositeScore(factors,marketRegime);
+      recResults.push({code:code,name:raw.name,type:raw.type,typeName:raw.typeName,score:score,factors:factors,raw:raw});
+    }
+    done++;
+    if(done%50===0){
+      $('recFill').style.width=Math.round(50+done/codeList.length*50)+'%';
+    }
+  }
+
   recResults.sort(function(a,b){return b.score.total-a.score.total});
+  $('recProgress').style.display='none';
   renderRecList();
-  toast('推荐分析完成');
+  toast('推荐分析完成，共 '+recResults.length+' 只基金');
 }
 
 function renderRecChips(){
@@ -656,12 +676,13 @@ function genReason(r){
   else if(bd.trend<=30)reasons.push('趋势不明朗');
   if(bd.drawdown>=70)reasons.push('回撤控制良好');
   else if(bd.drawdown<=30)reasons.push('回撤风险偏高');
-  if(bd.winRate>=70)reasons.push('日胜率高');
+  if(bd.winRate>=70)reasons.push('多周期胜率高');
   if(bd.meanRev>=70)reasons.push('超跌反弹信号');
   if(reasons.length===0)reasons.push('综合表现中等');
   var perf='';
-  if(r.gszzl!=null)perf='今日'+fmtPct(r.gszzl)+' · ';
-  if(f.m1!=0)perf+='近1月'+fmtPct(f.m1);
+  if(f.r1m!=null)perf+='近1月'+fmtPct(f.r1m);
+  if(f.r3m!=null)perf+=' · 近3月'+fmtPct(f.r3m);
+  if(f.ytd!=null)perf+=' · 今年'+fmtPct(f.ytd);
   return perf+' | '+reasons.slice(0,3).join('，');
 }
 
@@ -681,23 +702,22 @@ function runAnalysis(){
   $('anBtn').disabled=true;$('anBtn').textContent='分析中...';
   $('anBody').innerHTML='<div class="ld"><div class="sp"></div>正在分析...</div>';
   loadRT(code,function(){
-    fetchNav(code).then(function(vals){
-      $('anBtn').disabled=false;$('anBtn').textContent='开始分析';
-      if(!vals){$('anBody').innerHTML='<div class="empty"><div class="ei">📊</div><h3>数据不足</h3></div>';return}
-      var factors=calcFactors(vals);if(!factors){$('anBody').innerHTML='<div class="empty"><div class="ei">📊</div><h3>数据不足</h3></div>';return}
-      var score=calcCompositeScore(factors,marketRegime);
-      var bd=score.breakdown;
-      var scoreColor=score.total>=70?'var(--grn)':score.total>=50?'var(--org)':'var(--red)';
-      var scoreLabel=score.total>=70?'优秀':score.total>=50?'良好':'一般';
-      var ddRating=factors.maxDD<10?'低风险':factors.maxDD<20?'中风险':'高风险';
-      var ddColor=factors.maxDD<10?'g':factors.maxDD<20?'y':'r';
-      var html='<div class="an-res"><h3>综合评分</h3><div class="score" style="color:'+scoreColor+'">'+score.total+'<span style="font-size:16px;color:var(--t2)"> / 100</span></div><div style="text-align:center"><span class="tag '+(score.total>=70?'g':score.total>=50?'y':'r')+'">'+scoreLabel+'</span></div>';
-      html+='<h3>📊 收益指标</h3><div class="sg"><div class="si"><div class="sv" style="color:'+(factors.annReturn>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(factors.annReturn)+'</div><div class="sl">年化收益</div></div><div class="si"><div class="sv">'+fmtPct(factors.m1)+'</div><div class="sl">近1月</div></div><div class="si"><div class="sv">'+fmtPct(factors.m3)+'</div><div class="sl">近3月</div></div><div class="si"><div class="sv">'+fmtPct(factors.m6)+'</div><div class="sl">近6月</div></div></div>';
-      html+='<h3>⚠️ 风险指标</h3><div class="sg"><div class="si"><div class="sv" style="color:var(--red)">'+fmt(factors.maxDD,1)+'%</div><div class="sl">最大回撤</div></div><div class="si"><div class="sv">'+fmt(factors.vol,1)+'%</div><div class="sl">年化波动率</div></div><div class="si"><div class="sv">'+fmt(factors.sharpe,2)+'</div><div class="sl">夏普比率</div></div><div class="si"><div class="sv"><span class="tag '+ddColor+'">'+ddRating+'</span></div><div class="sl">风险等级</div></div></div>';
-      html+='<h3>🎯 因子得分</h3><div class="sg"><div class="si"><div class="sv">'+bd.momentum+'</div><div class="sl">动量</div></div><div class="si"><div class="sv">'+bd.riskAdj+'</div><div class="sl">风险调整</div></div><div class="si"><div class="sv">'+bd.trend+'</div><div class="sl">趋势强度</div></div><div class="si"><div class="sv">'+bd.meanRev+'</div><div class="sl">均值回归</div></div><div class="si"><div class="sv">'+bd.vol+'</div><div class="sl">波动控制</div></div><div class="si"><div class="sv">'+bd.drawdown+'</div><div class="sl">回撤控制</div></div><div class="si"><div class="sv">'+bd.recovery+'</div><div class="sl">恢复速度</div></div><div class="si"><div class="sv">'+bd.calmar+'</div><div class="sl">卡玛比率</div></div><div class="si"><div class="sv">'+bd.winRate+'</div><div class="sl">日胜率</div></div></div>';
-      html+='<h3>💡 建议</h3><p>'+(score.total>=70?'该基金综合表现优秀，多因子评分靠前，建议重点关注。':score.total>=50?'该基金表现中等，建议结合自身风险偏好谨慎配置。':'该基金综合评分偏低，建议谨慎或分散投资。')+'</p><p style="margin-top:8px;color:var(--t2);font-size:12px">市场环境: '+(marketRegime==='bull'?'牛市':marketRegime==='bear'?'熊市':'震荡市')+' · 因子权重已自动调整</p></div>';
-      $('anBody').innerHTML=html;
-    }).catch(function(){$('anBtn').disabled=false;$('anBtn').textContent='开始分析';$('anBody').innerHTML='<div class="empty"><div class="ei">❌</div><h3>分析失败</h3></div>'});
+    // Find in recResults
+    var found=null;
+    for(var i=0;i<recResults.length;i++){if(recResults[i].code===code){found=recResults[i];break}}
+    $('anBtn').disabled=false;$('anBtn').textContent='开始分析';
+    if(!found){$('anBody').innerHTML='<div class="empty"><div class="ei">📊</div><h3>该基金暂无推荐分析数据</h3><p>请先在推荐页运行分析</p></div>';return}
+    var f=found.factors,score=found.score,bd=score.breakdown,raw=found.raw;
+    var scoreColor=score.total>=70?'var(--grn)':score.total>=50?'var(--org)':'var(--red)';
+    var scoreLabel=score.total>=70?'优秀':score.total>=50?'良好':'一般';
+    var ddRating=f.maxDD<10?'低风险':f.maxDD<20?'中风险':'高风险';
+    var ddColor=f.maxDD<10?'g':f.maxDD<20?'y':'r';
+    var html='<div class="an-res"><h3>综合评分</h3><div class="score" style="color:'+scoreColor+'">'+score.total+'<span style="font-size:16px;color:var(--t2)"> / 100</span></div><div style="text-align:center"><span class="tag '+(score.total>=70?'g':score.total>=50?'y':'r')+'">'+scoreLabel+'</span></div>';
+    html+='<h3>📊 收益指标</h3><div class="sg"><div class="si"><div class="sv" style="color:'+(f.ytd>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.ytd)+'</div><div class="sl">今年以来</div></div><div class="si"><div class="sv" style="color:'+(f.r1m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.r1m)+'</div><div class="sl">近1月</div></div><div class="si"><div class="sv" style="color:'+(f.r3m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.r3m)+'</div><div class="sl">近3月</div></div><div class="si"><div class="sv" style="color:'+(f.r6m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.r6m)+'</div><div class="sl">近6月</div></div><div class="si"><div class="sv" style="color:'+(f.r1y>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.r1y)+'</div><div class="sl">近1年</div></div><div class="si"><div class="sv" style="color:'+(f.r3m>=0?'var(--red)':'var(--grn)')+'">'+fmtPct(f.r3y!=null?f.r3y:0)+'</div><div class="sl">近3年</div></div></div>';
+    html+='<h3>⚠️ 风险指标</h3><div class="sg"><div class="si"><div class="sv" style="color:var(--red)">'+fmt(f.maxDD,1)+'%</div><div class="sl">最大回撤(估)</div></div><div class="si"><div class="sv">'+fmt(f.vol,2)+'%</div><div class="sl">日波动</div></div><div class="si"><div class="sv">'+fmt(f.sharpe,2)+'</div><div class="sl">夏普比率</div></div><div class="si"><div class="sv"><span class="tag '+ddColor+'">'+ddRating+'</span></div><div class="sl">风险等级</div></div></div>';
+    html+='<h3>🎯 因子得分</h3><div class="sg"><div class="si"><div class="sv">'+bd.momentum+'</div><div class="sl">动量</div></div><div class="si"><div class="sv">'+bd.riskAdj+'</div><div class="sl">风险调整</div></div><div class="si"><div class="sv">'+bd.trend+'</div><div class="sl">趋势强度</div></div><div class="si"><div class="sv">'+bd.meanRev+'</div><div class="sl">均值回归</div></div><div class="si"><div class="sv">'+bd.vol+'</div><div class="sl">波动控制</div></div><div class="si"><div class="sv">'+bd.drawdown+'</div><div class="sl">回撤控制</div></div><div class="si"><div class="sv">'+bd.recovery+'</div><div class="sl">恢复速度</div></div><div class="si"><div class="sv">'+bd.calmar+'</div><div class="sl">卡玛比率</div></div><div class="si"><div class="sv">'+bd.winRate+'</div><div class="sl">多周期胜率</div></div></div>';
+    html+='<h3>💡 建议</h3><p>'+(score.total>=70?'该基金综合表现优秀，多因子评分靠前，建议重点关注。':score.total>=50?'该基金表现中等，建议结合自身风险偏好谨慎配置。':'该基金综合评分偏低，建议谨慎或分散投资。')+'</p><p style="margin-top:8px;color:var(--t2);font-size:12px">市场环境: '+(marketRegime==='bull'?'牛市':marketRegime==='bear'?'熊市':'震荡市')+' · 因子权重已自动调整</p></div>';
+    $('anBody').innerHTML=html;
   });
 }
 
