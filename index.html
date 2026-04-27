@@ -440,7 +440,7 @@ function renderCompareBody(){
 
 // ===== QUANTITATIVE ENGINE =====
 // Queue-based JSONP (same proven pattern as loadRT)
-var _nq=[],_nactive=0,_NSLOTS=3;
+var _nq=[],_nactive=0,_NSLOTS=3,_nid=0;
 function fetchNav(code){
   return new Promise(function(resolve){
     _nq.push({code:code,resolve:resolve});
@@ -451,21 +451,21 @@ function _nprocessNav(){
   while(_nactive<_NSLOTS&&_nq.length>0){
     _nactive++;
     var item=_nq.shift();
-    var slot=_nactive;
-    (function(sl,it){
-      window['_fhNav_'+sl]=function(d){
-        delete window['_fhNav_'+sl];_nactive--;
+    var myId=++_nid;
+    (function(id,it){
+      window['_fhN'+id]=function(d){
+        delete window['_fhN'+id];_nactive--;
         var list=(d.Data&&d.Data.LSJZList)||[];
         if(list.length<10)it.resolve(null);
         else{list.reverse();it.resolve(list.map(function(x){return parseFloat(x.DWJZ)}))}
         _nprocessNav();
       };
       var s=document.createElement('script');
-      s.src='https://api.fund.eastmoney.com/f10/lsjz?callback=_fhNav_'+sl+'&fundCode='+it.code+'&pageIndex=1&pageSize=120&_t='+Date.now();
-      s.onerror=function(){delete window['_fhNav_'+sl];_nactive--;it.resolve(null);_nprocessNav()};
+      s.src='https://api.fund.eastmoney.com/f10/lsjz?callback=_fhN'+id+'&fundCode='+it.code+'&pageIndex=1&pageSize=120&_t='+Date.now();
+      s.onerror=function(){delete window['_fhN'+id];_nactive--;it.resolve(null);_nprocessNav()};
       document.head.appendChild(s);
-      setTimeout(function(){if(window['_fhNav_'+sl]){delete window['_fhNav_'+sl];_nactive--;it.resolve(null);_nprocessNav()}},12000);
-    })(slot,item);
+      setTimeout(function(){if(window['_fhN'+id]){delete window['_fhN'+id];_nactive--;it.resolve(null);_nprocessNav()}},12000);
+    })(myId,item);
   }
 }
 
