@@ -583,6 +583,7 @@ function startRecAnalysis(codes){
 }
 
 function runRecommendation(){
+  console.log('[REC] runRecommendation called');
   $('recProgress').style.display='block';$('recFill').style.width='0%';
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在分析基金数据...</div>';
   recResults=[];
