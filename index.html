@@ -444,8 +444,10 @@ function fetchNav(code){
   return new Promise(function(resolve){
     var cbName='_fnav_'+(++_navCbId)+'_'+code+'_'+Date.now();
     var resolved=false;
+    console.log('[FETCHNAV] requesting', code, 'cb:', cbName);
     window[cbName]=function(d){
       if(resolved)return;resolved=true;
+      console.log('[FETCHNAV] callback fired for', code, 'list length:', d.Data ? d.Data.LSJZList.length : 'no Data');
       try{delete window[cbName]}catch(e){}
       var el=document.getElementById('s_'+cbName);if(el)el.remove();
       var list=(d.Data&&d.Data.LSJZList)||[];
@@ -455,9 +457,9 @@ function fetchNav(code){
     var s=document.createElement('script');
     s.id='s_'+cbName;
     s.src='https://api.fund.eastmoney.com/f10/lsjz?callback='+cbName+'&fundCode='+code+'&pageIndex=1&pageSize=120&_t='+Date.now();
-    s.onerror=function(){if(resolved)return;resolved=true;try{delete window[cbName]}catch(e){}s.remove();resolve(null)};
+    s.onerror=function(){console.log('[FETCHNAV] onerror for', code);if(resolved)return;resolved=true;try{delete window[cbName]}catch(e){}s.remove();resolve(null)};
     document.head.appendChild(s);
-    setTimeout(function(){if(!resolved){resolved=true;try{delete window[cbName]}catch(e){}var el=document.getElementById('s_'+cbName);if(el)el.remove();resolve(null)}},15000);
+    setTimeout(function(){if(!resolved){console.log('[FETCHNAV] timeout for', code);resolved=true;try{delete window[cbName]}catch(e){}var el=document.getElementById('s_'+cbName);if(el)el.remove();resolve(null)}},15000);
   });
 }
 
