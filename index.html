@@ -617,6 +617,7 @@ function runRecommendation(){
 }
 
 function finishRankAnalysis(allItems){
+  try {
   var codes=Object.keys(allItems);
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在计算 '+codes.length+' 只基金的量化评分...</div>';
 
@@ -649,6 +650,10 @@ function finishRankAnalysis(allItems){
   $('recProgress').style.display='none';
   renderRecList();
   toast('推荐分析完成，共 '+recResults.length+' 只基金');
+  } catch(e) {
+    $('recList').innerHTML='<div class="empty"><div class="ei">❌</div><h3>计算出错</h3><p>'+e.message+'</p></div>';
+    $('recProgress').style.display='none';
+  }
 }
 
 function renderRecChips(){
