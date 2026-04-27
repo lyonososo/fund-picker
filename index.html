@@ -579,22 +579,22 @@ function runRecommendation(){
   $('recList').innerHTML='<div class="ld"><div class="sp"></div>正在从天天基金获取排名数据...</div>';
   recResults=[];
 
-  // Fetch ranking data for different fund types and sort criteria
-  var types=[{ft:'gp',label:'股票型'},{ft:'hh',label:'混合型'},{ft:'zq',label:'债券型'},{ft:'zs',label:'指数型'}];
-  var sorts=[{sc:'dzjf',label:'定投收益'},{sc:'3yzf',label:'近3月'},{sc:'6yzf',label:'近6月'},{sc:'1yzf',label:'近1年'}];
+  var types=[{ft:'gp'},{ft:'hh'},{ft:'zq'},{ft:'zs'}];
+  var sorts=[{sc:'dzjf'},{sc:'3yzf'},{sc:'6yzf'},{sc:'1yzf'}];
   var allItems={};
-  var totalRequests=types.length*sorts.length;
+  var queue=[];
+  for(var ti=0;ti<types.length;ti++){
+    for(var si=0;si<sorts.length;si++){
+      queue.push({ft:types[ti].ft,sc:sorts[si].sc});
+    }
+  }
+  var totalRequests=queue.length;
   var doneRequests=0;
 
   function processNext(){
-    if(types.length===0){
-      // All done, calculate scores
-      finishRankAnalysis(allItems);
-      return;
-    }
-    var t=types.shift();
-    var s=sorts.shift();
-    loadRankData(t.ft,s.sc,1,50).then(function(datas){
+    if(queue.length===0){finishRankAnalysis(allItems);return}
+    var req=queue.shift();
+    loadRankData(req.ft,req.sc,1,50).then(function(datas){
       for(var i=0;i<datas.length;i++){
         var item=parseRankItem(datas[i]);
         if(item&&item.code)allItems[item.code]=item;
@@ -603,10 +603,7 @@ function runRecommendation(){
       $('recFill').style.width=Math.round(doneRequests/totalRequests*50)+'%';
       $('recList').innerHTML='<div class="ld"><div class="sp"></div>已获取 '+doneRequests+'/'+totalRequests+' 类排名数据...</div>';
       processNext();
-    }).catch(function(){
-      doneRequests++;
-      processNext();
-    });
+    }).catch(function(){doneRequests++;processNext()});
   }
   processNext();
 }
